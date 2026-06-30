@@ -19,7 +19,7 @@ API schemas, dependency injection, and automated testing.
 ## Setup
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-api.git
 cd recipe-api
 pip install -r requirements.txt
 uvicorn app.main:app --reload

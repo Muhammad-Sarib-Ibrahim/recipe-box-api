@@ -1,93 +1,56 @@
 # Recipe Box API
 
-A small REST API for managing personal recipes, built with FastAPI. Users register, log in,
-and get a JWT token that authorizes them to create, read, update, and delete their own recipes.
-Other users' recipes are fully inaccessible — even knowing a recipe's ID isn't enough.
+A small REST API for managing personal recipes — built with FastAPI as a way to get hands-on with backend fundamentals: authentication, ORM modeling, and writing an API that's actually safe to use, not just functional.
 
-Built as a learning/portfolio project to practice backend fundamentals: auth, ORM models vs.
-API schemas, dependency injection, and automated testing.
+Users register, log in, and get a JWT token that lets them create, read, update, and delete their own recipes. Other people's recipes are completely inaccessible — not just hidden in the UI, but unreachable at the API level even if you know the exact ID.
+
+**Live counterpart:** this pairs with a [Next.js frontend](https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-frontend) that talks to this API.
+
+## Why I built it this way
+
+I wanted something small enough to finish quickly but that still touched the parts of backend development that actually come up in real jobs: hashing passwords properly, issuing and verifying JWTs, separating what the database stores from what the API exposes, and writing tests that prove the security model works rather than just asserting status codes.
+
+A few decisions I made on purpose, worth mentioning if it comes up:
+
+- **Ownership checks return 404, not 403.** If you try to access someone else's recipe by ID, the API says "not found" rather than "forbidden" — so it never confirms that a recipe with that ID exists at all.
+- **API request/response shapes are separate from the database models.** The database stores a hashed password; the API response for a user never includes it, because the response is built from a different schema entirely, not the raw database object.
+- **`ingredients` is a plain string, not a normalized table.** A fully relational ingredients model felt like more complexity than this project needed to prove its point, so I kept it simple on purpose.
 
 ## Stack
 
-- **FastAPI** — web framework
-- **SQLModel** (SQLAlchemy + Pydantic) — ORM and validation
-- **SQLite** — zero-setup local database
-- **bcrypt** — password hashing
-- **python-jose** — JWT creation/verification
-- **pytest** — automated tests (7 passing, covering auth, ownership checks, and CRUD)
+FastAPI, SQLModel (SQLAlchemy + Pydantic) over SQLite, bcrypt for password hashing, python-jose for JWTs, pytest for tests.
 
-## Setup
+## Running it locally
 
 ```bash
 git clone https://github.com/Muhammad-Sarib-Ibrahim/recipe-box-api.git
-cd recipe-api
+cd recipe-box-api
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-The API will be running at `http://localhost:8000`. Interactive docs (Swagger UI) are at
-`http://localhost:8000/docs` — you can register, log in, and try every endpoint directly
-from the browser.
+Then open `http://localhost:8000/docs` — that's FastAPI's auto-generated Swagger UI. You can register, log in, copy the token it gives you into the "Authorize" button, and try every endpoint right from the browser.
 
-## Running tests
+Run the tests with:
 
 ```bash
 pytest tests/ -v
 ```
 
-Tests run against an isolated in-memory database, so they never touch your local `recipes.db`.
-
-## Example usage
-
-```bash
-# Register
-curl -X POST localhost:8000/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email": "you@example.com", "password": "yourpassword"}'
-
-# Log in (returns a JWT)
-curl -X POST localhost:8000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "you@example.com", "password": "yourpassword"}'
-
-# Create a recipe (use the token from login)
-curl -X POST localhost:8000/recipes \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-token>" \
-  -d '{"title": "Pasta", "ingredients": "pasta, tomato, garlic", "instructions": "Boil. Mix. Eat."}'
-
-# List your recipes
-curl localhost:8000/recipes -H "Authorization: Bearer <your-token>"
-```
-
-## Project structure
-
-```
+## How it's structured
 app/
-├── database.py      # DB engine and session setup
-├── models.py         # SQLModel table definitions
-├── schemas.py        # Pydantic request/response shapes (kept separate from
-│                      #   DB models so e.g. password hashes never leak in responses)
-├── auth.py            # password hashing, JWT creation/verification
-├── main.py            # FastAPI app setup
+├── database.py      # DB engine + session setup
+├── models.py          # the actual database tables (SQLModel)
+├── schemas.py          # what requests/responses look like (kept separate from models)
+├── auth.py               # password hashing, JWT creation/verification
+├── main.py                # app setup, CORS, routing
 └── routers/
-    ├── auth.py         # /auth/register, /auth/login
-    └── recipes.py      # /recipes CRUD, with per-user ownership checks
+├── auth.py             # /auth/register, /auth/login
+└── recipes.py           # /recipes CRUD with per-user ownership checks
 tests/
-└── test_api.py         # auth flow, ownership enforcement, full CRUD lifecycle
-```
+└── test_api.py                # auth flow, ownership enforcement, full CRUD lifecycle
 
-## Design notes
+## What I'd add next
 
-- Recipe ownership is enforced server-side: trying to access or modify someone else's
-  recipe returns a `404`, not a `403`, so the API doesn't even reveal that the recipe exists.
-- `ingredients` is stored as a plain string rather than a normalized ingredients table —
-  a deliberate scope decision to keep the data model simple for a small project.
-- Passwords are hashed with bcrypt before storage; plaintext passwords are never persisted
-  or logged.
-
-## Possible extensions
-
-- Pagination and search/filter on `GET /recipes`
-- Dockerfile for one-command setup
-- PostgreSQL instead of SQLite for production use
+Pagination and search on the recipes list, a Dockerfile for one-command setup, and probably Postgres instead of SQLite if this ever needed to run somewhere other than my laptop.

@@ -38,17 +38,21 @@ Run the tests with:
 pytest tests/ -v
 ```
 
+## How it's structured
+
+```
 app/
-├── page.tsx                 # login / register
-├── recipes/
-│   ├── page.tsx                # list + create recipes (protected)
-│   └── [id]/page.tsx             # view, edit, delete a single recipe (protected)
-└── layout.tsx                    # wraps the app in AuthProvider + Navbar
-lib/
-├── api.ts                          # typed client for the backend API
-└── auth-context.tsx                 # the JWT, login/logout, loading state
-components/
-└── Navbar.tsx
+├── database.py      # DB engine + session setup
+├── models.py          # the actual database tables (SQLModel)
+├── schemas.py          # what requests/responses look like (kept separate from models)
+├── auth.py               # password hashing, JWT creation/verification
+├── main.py                # app setup, CORS, routing
+└── routers/
+    ├── auth.py             # /auth/register, /auth/login
+    └── recipes.py           # /recipes CRUD with per-user ownership checks
+tests/
+└── test_api.py                # auth flow, ownership enforcement, full CRUD lifecycle
+```
 
 ## What I'd add next
 
